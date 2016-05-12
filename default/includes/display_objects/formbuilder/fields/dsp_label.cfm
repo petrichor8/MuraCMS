@@ -67,17 +67,19 @@
 			<cfif len(arguments.field.rblabel)>
 				<label for="#esapiEncode('html_attr', variables.forattribute)#">
 					#$.rbKey(arguments.field.rblabel)#<cfif arguments.field.isrequired> <ins>#$.rbKey('form.required')#</ins></cfif>
+				</label>
 			<cfelse>
 				<cfif arguments.field.fieldtype.fieldtype eq "radio">
-					<p>#arguments.field.label#
+					<p>#arguments.field.label#</p>
 				<cfelseif arguments.field.fieldtype.fieldtype eq "checkbox">
-					<p>#arguments.field.label#
+					<p>#arguments.field.label#</p>
 				<cfelseif arguments.field.fieldtype.fieldtype eq "hidden">
 				<cfelse>
 					<label for="#esapiEncode('html_attr', variables.forattribute)#">
 						#arguments.field.label#<cfif arguments.field.isrequired> <ins>#$.rbKey('form.required')#</ins></cfif>
+					</label>
 				</cfif>
-			</cfif></label>
+			</cfif>
 		</cfoutput>
 	</cfsavecontent>
 </cfsilent><cfoutput>#variables.label#</cfoutput>
