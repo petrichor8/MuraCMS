@@ -109,15 +109,17 @@
 		<cfset nextn.firstPage= 1 />
 	</cfif>
 
-	<cfset nextN.lastPage =nextn.firstPage + (2 * arguments.pageBuffer) + 1/>
+	<cfset nextN.lastPage =nextn.firstPage + (2 * arguments.pageBuffer)/>
 
 	<cfif nextn.NumberOfPages lt nextN.lastPage>
 		<cfset nextN.lastPage=nextn.NumberOfPages />
 	</cfif>
 
-	<cfset nextn.next=nextn.CurrentPageNumber+1 />
+	<cfif (nextn.lastPage - nextn.firstPage) lt (2 * arguments.pageBuffer)>
+ 		<cfset nextn.firstPage = max(1, nextn.lastPage - (2 * arguments.pageBuffer)) />
+ 	</cfif>
 
-	<cfset nextn.next=(nextn.next*nextN.recordsperpage) - nextn.RecordsPerPage +1 />
+	<cfset nextn.next = ((nextn.CurrentPageNumber+1)*nextN.recordsperpage) - nextn.RecordsPerPage +1 />
 
 	<cfset nextn.previous=nextn.CurrentPageNumber-1 />
 
@@ -205,12 +207,14 @@
 		<cfset variables.fileWriter.copyFile(source="#webroot#/config/templates/site/eventHandler.template.cfc", destination="#basedir#/eventHandler.cfc")>
 	</cfif>
 
-	<cfif not directoryExists("#basedir#/email")>
-		<cfset variables.fileWriter.createDir(directory="#basedir#/email")>
-	</cfif>
+	<cfif getBean('configBean').getEmailBroadcaster()>
+		<cfif not directoryExists("#basedir#/email")>
+			<cfset variables.fileWriter.createDir(directory="#basedir#/email")>
+		</cfif>
 
-	<cfif not fileExists("#basedir#/email/inc_email.cfm")>
-		<cfset variables.fileWriter.copyFile(source="#webroot#/config/templates/site/email.template.cfm", destination="#basedir#/email/inc_email.cfm")>
+		<cfif not fileExists("#basedir#/email/inc_email.cfm")>
+			<cfset variables.fileWriter.copyFile(source="#webroot#/config/templates/site/email.template.cfm", destination="#basedir#/email/inc_email.cfm")>
+		</cfif>
 	</cfif>
 
 </cffunction>
@@ -327,21 +331,43 @@
 	<cfreturn getRequestProtocol() eq 'https'>
 </cffunction>
 
+<cffunction name="getRequestHost" output="false">
+	<cfset var headers=getHttpRequestData().headers>
+
+	<cfif StructKeyExists(headers,"X-Forwarded-Host") and len(headers["X-Forwarded-Host"])>
+		<cfreturn headers["X-Forwarded-Host"]>
+	<cfelseif len(cgi.http_host)>
+		<cfreturn cgi.http_host>
+	<cfelse>
+		<cfreturn cgi.server_name>
+	</cfif>
+
+</cffunction>
+
 <cffunction name="getRequestProtocol" output="false">
 	<cftry>
-	<cfreturn getPageContext().getRequest().getScheme()>
-	<cfcatch>
-		<!--- Legacy --->
-		<cfif len(cgi.HTTPS) and listFindNoCase("Yes,On,True",cgi.HTTPS)>
-			<cfreturn "https">
-		<cfelseif isBoolean(cgi.SERVER_PORT_SECURE) and cgi.SERVER_PORT_SECURE>
-			<cfreturn "https">
-		<cfelseif len(cgi.SERVER_PORT) and cgi.SERVER_PORT eq "443">
+		<cfset var headers=getHttpRequestData().headers>
+
+		<cfif StructKeyExists(headers,"X-Forwarded-Proto") and headers["X-Forwarded-Proto"] eq "https">
+		    <cfreturn "https">
+		<cfelseif StructKeyExists(headers,"Front-End-Https") and isBoolean(headers["Front-End-Https"]) and headers["Front-End-Https"]>
 			<cfreturn "https">
 		<cfelse>
-			<cfreturn "http">
+		    <cfreturn getPageContext().getRequest().getScheme()>
 		</cfif>
-	</cfcatch>
+
+		<cfcatch>
+			<!--- Legacy --->
+			<cfif len(cgi.HTTPS) and listFindNoCase("Yes,On,True",cgi.HTTPS)>
+				<cfreturn "https">
+			<cfelseif isBoolean(cgi.SERVER_PORT_SECURE) and cgi.SERVER_PORT_SECURE>
+				<cfreturn "https">
+			<cfelseif len(cgi.SERVER_PORT) and cgi.SERVER_PORT eq "443">
+				<cfreturn "https">
+			<cfelse>
+				<cfreturn "http">
+			</cfif>
+		</cfcatch>
 	</cftry>
 </cffunction>
 
@@ -435,6 +461,46 @@ QuerySetCell( myQuery , colName[ c ] , myArray[ r ][colName[ c ] ] , r );
 </cfscript>
 <cfreturn myQuery />
 </cffunction>
+
+<cfscript>
+	function queryRowToArray( qry,i ) {
+		var row = 1;
+		var ii = 1;
+		var cols = listToArray(arguments.qry.columnList);
+		var aReturn = [];
+
+		if(arrayLen(arguments) GT 1)
+			row = arguments[2];
+
+		for(ii = 1; ii lte arraylen(cols); ii = ii + 1) {
+			ArrayAppend(aReturn,arguments.qry[cols[ii]][row]);
+		}
+
+		return aReturn;
+	}
+
+	function queryToStruct( qry ) {
+
+		var str = {};
+
+		for(var i = 1;i <= qry.recordcount;i++) {
+			str[i] = queryRowToStruct( qry,i);
+		}
+
+		return str;
+	}
+
+	function queryToArray( qry,primarykey="" ) {
+
+		var arr = [];
+
+		for(var i = 1;i <= qry.recordcount;i++) {
+			ArrayAppend(arr,queryRowToStruct( qry,i,primarykey) );
+		}
+
+		return arr;
+	}
+</cfscript>
 
 <cffunction name="queryRowToStruct" access="public" output="false" returntype="struct">
 	<cfargument name="qry" type="query" required="true">

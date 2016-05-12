@@ -98,7 +98,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 		<cfargument name="gpstimestamp" type="string" required="yes" default=""/>--->
 		<cfargument name="exif" type="string" required="yes" default=""/>
 
-		<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+		<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 		<cfreturn variables.fileDAO.create(argumentCollection=arguments) />
 
@@ -616,7 +616,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 
 <cffunction name="purgeDeleted" output="false">
 	<cfargument name="siteid" default="">
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 	<cfset variables.fileDAO.purgeDeleted(arguments.siteID)>
 </cffunction>
 
@@ -628,7 +628,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 <cffunction name="cleanFileCache" output="false">
 <cfargument name="siteID">
 
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 	<cfset var rsDB="">
 	<cfset var rsDIR="">
@@ -684,7 +684,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 <cfargument name="siteID">
 <cfargument name="size" default="">
 
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 	<cfset var rsDB="">
 	<cfset var rsCheck="">
@@ -787,15 +787,15 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 	<cfargument name="size" default="" />
 	<cfargument name="siteID" default="" />
 
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 	<cfreturn variables.imageProcessor.getCustomImage(argumentCollection=arguments) />
 </cffunction>
 
 <cffunction name="createHREFForImage" output="false" returntype="any">
 <cfargument name="siteID">
-<cfargument name="fileID">
-<cfargument name="fileExt">
+<cfargument name="fileID" default="">
+<cfargument name="fileExt" default="">
 <cfargument name="size" required="true" default="undefined">
 <cfargument name="direct" required="true" default="#this.directImages#">
 <cfargument name="complete" type="boolean" required="true" default="false">
@@ -808,7 +808,12 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 	<cfset var returnURL="">
 	<cfset var begin="">
 
-	<cfif not structKeyExists(arguments,"fileEXT")>
+	<cfif not len(arguments.fileid)>
+		<cfset arguments.fileid=variables.settingsManager.getSite(arguments.siteid).getPlaceholderImgId()>
+		<cfset arguments.fileExt=variables.settingsManager.getSite(arguments.siteid).getPlaceholderImgExt()>
+	</cfif>
+
+	<cfif not len(arguments.fileExt)>
 		<cfset arguments.fileEXT=getBean("fileManager").readMeta(arguments.fileID).fileEXT>
 	</cfif>
 
@@ -820,7 +825,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 		<cfset arguments.siteID=session.siteID>
 	</cfif>
 
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 	<cfif arguments.complete
 		OR arguments.secure
@@ -886,7 +891,10 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 				</cfif>
 				<cfset returnURL=application.configBean.getAssetPath() & "/" & arguments.siteID & "/cache/file/" & arguments.fileID & imgSuffix & "." & arguments.fileEXT>
 			<cfelseif arguments.size neq 'custom'>
-				<cfset returnURL = application.configBean.getAssetPath() & "/" & arguments.siteID & "/cache/file/" & getCustomImage(image="#application.configBean.getFileDir()#/#arguments.siteid#/cache/file/#arguments.fileID#.#arguments.fileExt#",size=arguments.size,siteID=arguments.siteID)>
+				<cfset returnURL = getCustomImage(image="#application.configBean.getFileDir()#/#arguments.siteid#/cache/file/#arguments.fileID#.#arguments.fileExt#",size=arguments.size,siteID=arguments.siteID)>
+ 				<cfif len(returnURL)>
+ 					<cfset returnURL = application.configBean.getAssetPath() & "/" & arguments.siteID & "/cache/file/" & returnURL>
+ 				</cfif>
 			<cfelse>
 				<cfif not len(arguments.width)>
 					<cfset arguments.width="auto">
@@ -919,7 +927,7 @@ version 2 without this exception.  You may, if you choose, apply this exception 
 	<cfargument name="width">
 	<cfargument name="siteid">
 
-	<cfset arguments.siteid=getBean('settingsManager').getSite(arguments.siteid).getFilePoolID()>
+	<cfset arguments.siteid=variables.settingsManager.getSite(arguments.siteid).getFilePoolID()>
 
 	<cfset var rsMeta=readMeta(arguments.fileID)>
 	<cfset var site=variables.settingsManager.getSite(rsMeta.siteID)>
